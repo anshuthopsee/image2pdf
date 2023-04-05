@@ -1,1 +1,1 @@
-Work in progress. Lots of issue with scroll logic.
+Work in progress. Lots of issues with scroll logic.
