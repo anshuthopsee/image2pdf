@@ -1,19 +1,19 @@
 {
   "files": {
     "main.css": "/image2pdf/static/css/main.b1ce0864.css",
-    "main.js": "/image2pdf/static/js/main.a64306a3.js",
+    "main.js": "/image2pdf/static/js/main.acc8e461.js",
     "static/js/498.6dd1e5e8.chunk.js": "/image2pdf/static/js/498.6dd1e5e8.chunk.js",
     "static/js/703.cc5b22e1.chunk.js": "/image2pdf/static/js/703.cc5b22e1.chunk.js",
     "static/js/347.7213e378.chunk.js": "/image2pdf/static/js/347.7213e378.chunk.js",
     "index.html": "/image2pdf/index.html",
     "main.b1ce0864.css.map": "/image2pdf/static/css/main.b1ce0864.css.map",
-    "main.a64306a3.js.map": "/image2pdf/static/js/main.a64306a3.js.map",
+    "main.acc8e461.js.map": "/image2pdf/static/js/main.acc8e461.js.map",
     "498.6dd1e5e8.chunk.js.map": "/image2pdf/static/js/498.6dd1e5e8.chunk.js.map",
     "703.cc5b22e1.chunk.js.map": "/image2pdf/static/js/703.cc5b22e1.chunk.js.map",
     "347.7213e378.chunk.js.map": "/image2pdf/static/js/347.7213e378.chunk.js.map"
   },
   "entrypoints": [
     "static/css/main.b1ce0864.css",
-    "static/js/main.a64306a3.js"
+    "static/js/main.acc8e461.js"
   ]
 }
