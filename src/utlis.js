@@ -1,40 +1,113 @@
-export function dragToMove(div, handle) {
-    const isTouch = window.ontouchstart !== undefined;
-    
-    let handleOrDiv = handle;
+import { jsPDF } from "jspdf";
 
-    if (!handle) handleOrDiv = div;
+class utils {
+    constructor() {
+        this.maxHeight = 297;
+        this.maxWidth = 215;
+    };
 
-    let mousedown = false;
-    let offsetX;
-    let offsetY;
-    let startX;
-    let startY;
-
-    handleOrDiv.addEventListener(isTouch ? "touchstart" : "mousedown", (e) => {
-        e.stopPropagation()
-        mousedown = true;
-        offsetX = e.touches ? e.touches[0].clientX - e.target.getBoundingClientRect().left: e.offsetX;
-        offsetY = e.touches ? e.touches[0].clientY - e.target.getBoundingClientRect().top : e.offsetY;
-    });
-
-    document.addEventListener(isTouch ? "touchmove" : "mousemove", (e) => {
-        if (mousedown) {
-            e.preventDefault();
-            e = e.touches ? e.touches[0] : e;
-            startX = e.clientX-offsetX;
-            startY = e.clientY-offsetY;
-            
-            div.style.left = startX+"px";
-            div.style.top = startY+"px";
+    shortenFileName = (name) => {
+        if (name.length > 15) {
+          return name.substr(0, 8) + '...' + name.substr(-7);
         };
-    }, {passive: false});
 
-    window.addEventListener(isTouch ? "touchend" : "mouseup", () => {
-        mousedown = false;
-        if (startX < 0) div.style.left = 0+"px";
-        if (startX > window.screen.width-div.clientWidth) div.style.left = window.screen.width-div.clientWidth+"px";
-        if (startY < 0) div.style.top = 0+"px";
-        if (startY > window.innerHeight-div.clientHeight) div.style.top = window.innerHeight-div.clientHeight+"px";
-    });
+        return name;
+    };
+
+    nearlyEqual(a, b, targetDiff = 1) {
+        return Math.abs(a - b) < targetDiff;
+    };
+
+    isElementXPercentInViewport = (el, parent,  percentVisible) => {
+        let rect = el.getBoundingClientRect();
+        let offsetLeft = el.offsetParent.offsetParent.offsetLeft;
+        let windowWidth = parent.clientWidth+offsetLeft;
+
+        return !(
+            Math.floor(100 - (((rect.left-offsetLeft >= 0 ? 0 : rect.left-offsetLeft) / +-rect.width) * 100)) < percentVisible ||
+            Math.floor(100 - ((rect.right - windowWidth) / rect.width) * 100) < percentVisible
+        );
+    };
+
+    howManyImagesVisible = (parent) => {
+        let nos = 0;
+        if (parent.children.length > 0) {
+            let images = [...parent.children];
+            images.map((image) => {
+                let bool = this.isElementXPercentInViewport(image, parent, 50);
+                if (bool) {
+                    nos+=1;
+                };
+            });
+
+            return nos;
+        };
+    };
+    
+    fitImage = (height, width) => {
+        let imgRatio = width/height;
+        let pageRatio = this.maxWidth/this.maxHeight;
+    
+        if (imgRatio >= 1) {
+            const wc = width / this.maxWidth;
+            if (imgRatio >= pageRatio) {
+                width = this.maxWidth;
+                height = height/wc;
+            }
+            else {
+                const pi = pageRatio / imgRatio;
+                width = this.maxWidth/pi;
+                height = (height/pi)/wc;
+            };
+        }
+        else {
+            const wc = width / this.maxHeight;
+            if (1 / imgRatio > pageRatio) {
+                const ip = (1 / imgRatio) / 0.9;
+                width = this.maxHeight/ip;
+                height = (height/ip)/wc;
+            }
+            else {
+                width = this.maxHeight;
+                height = height/wc;
+            };
+        };
+    
+        return [height, width];
+    };
+    
+    generatePDF = (files) => {
+        return new Promise(async (resolve) => {
+            const pdf = new jsPDF();
+            let filesArray = [...files];
+    
+            const imgOnLoad = (img, format) => {
+                return new Promise((resolve) => {
+                    img.onload = () => {
+                        let [height, width] = this.fitImage(Math.floor(img.height), Math.floor(img.width));
+                        pdf.addImage(img.src, format, (this.maxWidth/2)-(width/2)-3, (this.maxHeight/2)-(height/2), width, height);
+                        resolve();
+                    };
+                });
+            };
+    
+            let index = 0;
+            for (let file of filesArray) {
+                let img = document.createElement("img");
+                img.src = URL.createObjectURL(file);
+                let format = file.type.substr(6).toUpperCase();
+                await imgOnLoad(img, format);
+    
+                if (index === files.length - 1) {
+                    pdf.save("image2pdf");
+                    resolve();
+                } else {
+                    pdf.addPage();
+                };
+                index +=1;
+            };
+        });
+    };
 };
+
+export default utils;
