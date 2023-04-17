@@ -1,19 +1,24 @@
-import { useEffect, useRef, useState, createElement } from "react";
-import { jsPDF } from "jspdf";
+import { useEffect, useRef, useState } from "react";
+import utils from "./utils.js";
 import Canvas from "./Canvas.js";
 import Popup from "./Popup.js";
 import Info from "./Info.js";
 
+const Utils = new utils();
+
 const Home = ({ setFiles, files, popup, setPopup }) => {
-    let chosenIndex = useRef(null);
     let imagePos = {x: 0, y: 0};
-    let currentPos = {x: 0, y: 0};
+    let mousePos = {x: 0, y: 0};
     let image = null;
     let animate = false;
     let onLeftBtn = false;
     let onRightBtn = false;
-    let scroll = false;
+    let scrollingLeft = false;
+    let scrollingRight = false;
 
+    const chosenIndex = useRef(null);
+    const firstImageVisible = useRef(0);
+    const numberOfImagesVisible = useRef(0);
     const selectedFiles = useRef();
     const clonedElement = useRef();
     const isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
@@ -23,54 +28,46 @@ const Home = ({ setFiles, files, popup, setPopup }) => {
         let filesArray = [...files];
 
         [...e.target.files].map((file) => {
-            filesArray.push(file);
+            if (file.type === "image/jpeg" || file.type === "image/png") {
+                filesArray.push(file);
+            };
         });
 
-        e.target.value = "";
-        setFiles(filesArray);
-    };
-
-    const shortenFileName = (name) => {
-        if (name.length > 15) {
-          return name.substr(0, 8) + '...' + name.substr(-7);
-        }
-      
-        return name;
+        if (filesArray.length <= 20) {
+            setFiles(filesArray);
+        } else {
+            setPopup({show: true, message: "Exceeded limit of 20 images.", timeout: 5});
+        };  
     };
 
     const removeFile = (e, index) => {
         let filesArray = [...files];
-        let fileName = shortenFileName(filesArray[index].name);
+        let fileName = Utils.shortenFileName(filesArray[index].name);
+        if (firstImageVisible.current > 0) {
+            if (index === filesArray.length-1) {
+                firstImageVisible.current-=1;
+            };
+        };
         filesArray.splice(index, 1);
         setFiles(filesArray);
-        setPopup({show: true, message: `IMG: ${fileName} removed.`})
+        setPopup({show: true, message: `IMG: ${fileName} removed.`, timeout: 5})
     };
 
     const clearQueue = () => {
         if (files.length > 0) {
             setFiles(() => []);
-            setPopup({show: true, message: "Queue cleared."});
+            setPopup({show: true, message: "Queue cleared.", timeout: 5});
+            firstImageVisible.current = 0;
+            numberOfImagesVisible.current = 0;
         };
     };
 
-    const generatePDF = (e) => {
+    const download = () => {
         if (files.length > 0) {
-            const pdf = new jsPDF();
-            let filesArray = [...files];
-
-            filesArray.map((file, index) =>  {
-                let format = file.type.substr(6).toUpperCase();
-                pdf.addImage(URL.createObjectURL(file), format, 0, 0, 210, 297);
-
-                if (index < filesArray.length-1) {
-                    pdf.addPage();
-                };
-            });
-
-            pdf.save("image2pdf");
-            setPopup({show: true, message: "Download completed!"});
+            setPopup({show: true, message: "Converting images to PDF...", timeout: 60})
+            Utils.generatePDF(files).then(() => setPopup({show: true, message: "Download completed!", timeout: 5}))
         } else {
-            setPopup({show: true, message: "Please upload images!"});
+            setPopup({show: true, message: "Please upload images!", timeout: 5})
         };
     };
 
@@ -78,7 +75,7 @@ const Home = ({ setFiles, files, popup, setPopup }) => {
         if (e.target.tagName.toLowerCase() !== "button") {
             let chosenImage = e.target.getBoundingClientRect();
             let left = e.touches ? chosenImage.left : e.clientX - e.nativeEvent.offsetX;
-            let top = e.touches ? chosenImage.top : e.clientY - e.nativeEvent.offsetY;
+            let top = e.touches ? chosenImage.top + window.scrollY : e.clientY - e.nativeEvent.offsetY + window.scrollY;
 
             let offsetX = e.touches ? e.touches[0].pageX - e.touches[0].target.offsetLeft : chosenImage.left + e.nativeEvent.offsetX;
             let offsetY = e.touches ? e.touches[0].pageY - e.touches[0].target.offsetTop : chosenImage.top + e.nativeEvent.offsetY;
@@ -91,28 +88,24 @@ const Home = ({ setFiles, files, popup, setPopup }) => {
         };
     };
 
-    function nearlyEqual(a, b, targetDiff = 1) {
-        return Math.abs(a - b) < targetDiff;
-    };
-
-    const updatePos = (e) => {
-        // if (nearlyEqual(currentPos.x, imagePos.x) && nearlyEqual(currentPos.y, imagePos.y)) {
-        //     console.log("not moving");
-        //     animate = false;
-        //     return
-        // };
-
+    const updatePos = () => {
         if (!clonedElement.current) {
             animate = false;
             return;
         };
 
-        clonedElement.current.style.transform = `translate(${imagePos.x}px, ${imagePos.y}px)`
+        if (isMobile) {
+            let swapWith = document.elementsFromPoint(mousePos.x, mousePos.y)[3]?.parentNode;
+            if (swapWith) image = swapWith;
+        } else {
+            let swapWith = document.elementsFromPoint(mousePos.x, mousePos.y)[1]?.parentNode;
+            if (swapWith) image = swapWith;
+        };
 
+        clonedElement.current.style.transform = `translate(${imagePos.x}px, ${imagePos.y}px)`;
         let element = document.getElementById(`${chosenIndex.current}`);
 
         if (Number.isInteger(parseInt(image.id)) && parseInt(image.id) !== parseInt(element.id)) {
-            
             let pos1 = 10;
             image.style.transform = `translateX(${pos1+=145*(parseInt(element.id))}px)`;
             let pos2 = 10;
@@ -121,14 +114,11 @@ const Home = ({ setFiles, files, popup, setPopup }) => {
             element.id = image.id;
             chosenIndex.current = image.id;
             image.id = id;
+            
+            selectedFiles.current.style.scrollSnapType = "none";
         };
 
-        currentPos.x = imagePos.x;
-        currentPos.y = imagePos.y;
-
-        setTimeout(() => {
-            requestAnimationFrame(updatePos)
-        }, 0);
+        requestAnimationFrame(updatePos);
     };
 
     const onMouseMove = (e) => {
@@ -138,39 +128,48 @@ const Home = ({ setFiles, files, popup, setPopup }) => {
 
             if (e.touches) {
                 target = document.elementFromPoint(e.touches[0].clientX, e.touches[0].clientY);
-            }
+                mousePos.x = e.touches[0].clientX;
+                mousePos.y = e.touches[0].clientY;
+                clonedElement.current.style.pointerEvents = "all";
+            } else {
+                mousePos.x = e.clientX;
+                mousePos.y = e.clientY;
+            };
             
-            if (target.id === "left_btn") {
-                onLeftBtn = true;
-                onRightBtn = false;
-                scrollLeft(e, false);
-            } else if (target.id === "right_btn") {
-                onLeftBtn = false;
-                onRightBtn = true;
-                scrollRight(e, false);
+            if (target && target.id === "left_btn") {
+                if (!onLeftBtn) {
+                    onLeftBtn = true;
+                    onRightBtn = false;
+                    scrollingRight = false;
+                    scrollingLeft = false;
+                    scrollLeft(e, false);
+                };
+            } else if (target && target.id === "right_btn") {
+                if (!onRightBtn) {
+                    onLeftBtn = false;
+                    onRightBtn = true;
+                    scrollingRight = false;
+                    scrollingLeft = false;
+                    scrollRight(e, false);
+                }
             } else {
                 onLeftBtn = false;
                 onRightBtn = false;
+                scrollingRight = false;
+                scrollingLeft = false;
             };
 
-            if (!scroll) {
-                image = e.target.parentNode;
-
-                if (e.touches) {
-                    image = document.elementsFromPoint(e.touches[0].clientX, e.touches[0].clientY)[3].parentNode;
-                    clonedElement.current.style.pointerEvents = "all";
-                };
-            };
+            let offsetOnScroll = e.touches ? window.scrollY : 0;
             
             e = e.touches ? e.touches[0] : e;
             let startX = e.clientX-chosen.offsetX;
             let startY = e.clientY-chosen.offsetY;
             imagePos.x = startX;
-            imagePos.y = startY;
+            imagePos.y = startY+offsetOnScroll;
 
             if (!animate) {
-                updatePos();
-                animate = true
+                updatePos(e);
+                animate = true;
             };
         };
     };
@@ -178,25 +177,29 @@ const Home = ({ setFiles, files, popup, setPopup }) => {
     const onMouseUp = (e) => {
         onLeftBtn = false;
         onRightBtn = false;
+        scrollingLeft = false;
+        scrollingRight = false;
+        chosenIndex.current = null;
 
-        if (chosen.element && e.target.tagName.toLowerCase() !== "input" && files.length > 0) {
-            chosenIndex.current = null;
-            let filesArray = [...files];
-            let obj = {};
+        if (chosen.element && e.target.tagName &&files.length > 0) {
+            if (e.target.tagName.toLowerCase() !== "input") {
+                let filesArray = [...files];
+                let obj = {};
 
-            if (files.length > 0) {
-                [...selectedFiles.current.children].map((file, index) => {
-                    obj[parseInt(file.id)] = filesArray[index];
-                });
+                if (files.length > 0) {
+                    [...selectedFiles.current.children].map((file, index) => {
+                        obj[parseInt(file.id)] = filesArray[index];
+                    });
 
-                filesArray = [];
-                let orderedKeys = Object.keys(obj).sort((a, b) => a - b);
+                    filesArray = [];
+                    let orderedKeys = Object.keys(obj).sort((a, b) => a - b);
 
-                orderedKeys.map((key) => {
-                    filesArray.push(obj[parseInt(key)]);
-                });
-            
-                setFiles(() => [...filesArray]);
+                    orderedKeys.map((key) => {
+                        filesArray.push(obj[parseInt(key)]);
+                    });
+                
+                    setFiles(() => [...filesArray]);
+                };
             };
         };
 
@@ -204,77 +207,107 @@ const Home = ({ setFiles, files, popup, setPopup }) => {
     };
 
     const scrollLeft = (e, onClick=true) => {
-        let containerWidth = selectedFiles.current.clientWidth;
-        console.log(containerWidth)
-
-        if (Math.abs(selectedFiles.current.scrollLeft) !== 0 || scroll) {
-            const scrollFunc = (distance, cummulative) => {
-                if (cummulative > containerWidth+25) {
+        if (Math.abs(selectedFiles.current.scrollLeft) !== 0) {
+            const scrollFunc = () => {
+                if (Math.abs(selectedFiles.current.scrollLeft) === 0) {
                     return;
                 };
-                
-                selectedFiles.current.scrollLeft-=distance;
-                requestAnimationFrame(() => scrollFunc(distance, cummulative+distance));
+
+                let children = [...selectedFiles.current.children];
+                let numberOfImages = Utils.howManyImagesVisible(selectedFiles.current);
+
+                if (numberOfImagesVisible.current !==0 && firstImageVisible.current+numberOfImagesVisible.current-1 === children.length-1) {
+                    if (numberOfImages > numberOfImagesVisible.current) {
+                        firstImageVisible.current-=numberOfImages-numberOfImagesVisible.current;
+                    };
+                };
+
+                numberOfImagesVisible.current = numberOfImages;
+
+                if (firstImageVisible.current-numberOfImages < 0) {
+                    if (firstImageVisible.current !==0) firstImageVisible.current = 0;
+                    
+                } else {
+                    firstImageVisible.current-=numberOfImages;
+                };
+
+                let offset = 22;
+                let el = children.filter((child) => parseInt(child.id) === firstImageVisible.current)[0];
+                let rect = el.getBoundingClientRect();
+                let left = rect.left - el.offsetParent.offsetParent.offsetLeft - offset;
+                selectedFiles.current.scrollLeft+=left;
             };
     
             if (!onClick) {
-                if (!scroll) {
-                    const func = () => {
-                        if (!onLeftBtn) {
-                            scroll = false;
-                            console.log("end")
+                if (onLeftBtn) {
+                    scrollingLeft = true;
+                    const func = async () => {
+                        if (!scrollingLeft || scrollingRight) {
+                            console.log("left-stop")
+                            scrollingLeft = false;
                             return;
                         };
                         
-                        scroll = true;
-                        scrollFunc(10, 10);
-        
-                        setTimeout(() => {
-                            func();
-                        }, 1000);
+                        scrollingLeft = true;
+                        console.log("left-running")
+                        scrollFunc();
+                        await sleep(1500);
+                        func()
                     };
         
                     func();
                 };
-            } else scrollFunc(10, 10);
+            } else scrollFunc();
         };
     };
 
+    const sleep = ms => new Promise(resolve => setTimeout(resolve, ms));
+
     const scrollRight = (e, onClick=true) => {
         let containerWidth = selectedFiles.current.clientWidth;
-        console.log(containerWidth)
-    
-        if (Math.abs(selectedFiles.current.scrollLeft) !== selectedFiles.current.scrollWidth - containerWidth) {
-            const scrollFunc = (distance, cummulative) => {
-                if (cummulative > containerWidth+25) {
-                    console.log(cummulative)
+        if (Math.abs(selectedFiles.current.scrollLeft) - (selectedFiles.current.scrollWidth - containerWidth) < -8) {
+            const scrollFunc = () => {
+                let numberOfImages = Utils.howManyImagesVisible(selectedFiles.current);
+                numberOfImagesVisible.current = numberOfImages;
+                let children = [...selectedFiles.current.children];
+
+                if (Math.abs(selectedFiles.current.scrollLeft) - (selectedFiles.current.scrollWidth - containerWidth) >= -8) { 
                     return;
                 };
-                
-                selectedFiles.current.scrollLeft+=distance;
-                requestAnimationFrame(() => scrollFunc(distance, cummulative+distance));
+
+                if (firstImageVisible.current+(2*numberOfImages) > children.length-1) {
+                    firstImageVisible.current=children.length-numberOfImages;
+                } else {
+                    firstImageVisible.current+=numberOfImages;
+                };
+
+                let offset = 22;
+                let el = children.filter((child) => parseInt(child.id) === firstImageVisible.current)[0];
+                let rect = el.getBoundingClientRect();
+                let left = rect.left - el.offsetParent.offsetParent.offsetLeft - offset;
+                selectedFiles.current.scrollLeft+=left
             };
     
             if (!onClick) {
-                if (!scroll) {
-                    const func = () => {
-                        if (!onRightBtn) {
-                            scroll = false;
-                            console.log("end")
+                if (onRightBtn) {
+                    scrollingRight = true;
+                    const func = async () => {
+                        if (!scrollingRight || scrollingLeft) {
+                            console.log("right-stop")
+                            scrollingRight = false;
                             return;
                         };
                         
-                        scroll = true;
-                        scrollFunc(10, 10);
-        
-                        setTimeout(() => {
-                            func();
-                        }, 1000);
+                        scrollingRight = true;
+                        console.log("right-running")
+                        scrollFunc();
+                        await sleep(1500);
+                        func();
                     };
         
                     func();
                 };
-            } else scrollFunc(10, 10);
+            } else scrollFunc();
         };
     };
 
@@ -297,15 +330,12 @@ const Home = ({ setFiles, files, popup, setPopup }) => {
                 offset+=145;
                 return (
                     <div className="image_container" key={file.name+index} id={index}
-
                         onMouseDown={!isMobile ? (e) => onMouseDown(e, index) : () => {}}
                         onTouchStart={isMobile ? (e) => onMouseDown(e, index) : () => {}}
                         style={{transform: `translateX(${offset}px)`}}
-            
                         >
-
                         <div className="image_box">
-                            <span className="file_name">{shortenFileName(file.name)}</span>
+                            <span className="file_name">{Utils.shortenFileName(file.name)}</span>
                             <button className="remove" onClick={(e) => removeFile(e, index)}>X</button>
                         </div>
                         <Canvas height={140} width={120} file={file}></Canvas>
@@ -329,9 +359,9 @@ const Home = ({ setFiles, files, popup, setPopup }) => {
 
     return (
         <>
-            {popup.show ? <Popup show={popup.show} setPopup={setPopup}>{popup.message}</Popup> : ""}
+            {popup.show ? <Popup show={popup.show} setPopup={setPopup} timeout={popup.timeout}>{popup.message}</Popup> : ""}
+            {renderClone(chosen)}
             <div className="container">
-                {renderClone(chosen)}
                 <div className="box">
                     <div className="wrapper">
                         <span className="text">+</span>
@@ -341,12 +371,12 @@ const Home = ({ setFiles, files, popup, setPopup }) => {
                 </div>
                 <div className="selected_files_container">
                     <button id="left_btn" onClick={scrollLeft}> {"<"} </button>
-                    <div className="selected_files" ref={selectedFiles}>{showFiles(files)}</div>
+                    <div className="selected_files" ref={selectedFiles} style={{scrollSnapType: "none"}}>{showFiles(files)}</div>
                     <button id="right_btn" onClick={scrollRight}>{">"}</button>
                 </div>
                 <div className="button_container">
                     <button className="action clear_queue" onClick={clearQueue}>Clear queue</button>
-                    <button className="action download" onClick={generatePDF}>Download [PDF]</button>
+                    <button className="action download" onClick={download}>Download [PDF]</button>
                 </div>
                 <Info/>
             </div>
