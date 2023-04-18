@@ -1,7 +1,7 @@
 A simple image to PDF converting website with a carousel that allows you to drag and re-order images. Add up-to 20 images in one go and convert them into a PDF. No file size limit. Conversion happens within the browser, using jsPDF library.
 
 ## Demo
-!Uusage demo](demo/image2pdf.gif)
+![Usage demo](demo/image2pdf.gif)
 
 ## How to use
 - First, upload one or upto 20 images, by clicking on the blackish area, or by dragging and dropping your images onto it.
