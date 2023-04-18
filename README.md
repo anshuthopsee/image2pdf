@@ -18,5 +18,5 @@ A simple image to PDF converting website with a carousel that allows you to drag
 npm i jsPDF
 ```
 
-## Try it out here
-https://anshuthopsee.github.io/image2pdf
+## Site link
+Try it out here: https://anshuthopsee.github.io/image2pdf
