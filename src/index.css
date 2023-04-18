@@ -64,11 +64,10 @@ a:hover {
 
 .container {
   margin: auto;
-  height: 600px;
+  height: auto;
   width: 100%;
   max-width: 600px;
   -webkit-overflow-scrolling: touch;
-  /* border: 1px solid white; */
 }
 
 .box {
