@@ -63,7 +63,11 @@ class utils {
         else {
             const wc = width / this.maxHeight;
             if (1 / imgRatio > pageRatio) {
-                const ip = (1 / imgRatio) / 0.79;
+                let ip = (1 / imgRatio);
+                if (ip <= 1.34) ip=ip/0.9;
+                if (ip <= 1.24) ip=ip/0.85;
+                if (ip <= 1.14) ip=ip/0.8;
+                if (ip <= 1.04) ip=ip/0.75;
                 width = this.maxHeight/ip;
                 height = (height/ip)/wc;
             }
