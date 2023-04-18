@@ -1,19 +1,19 @@
 {
   "files": {
     "main.css": "/image2pdf/static/css/main.f935df4d.css",
-    "main.js": "/image2pdf/static/js/main.1352f351.js",
+    "main.js": "/image2pdf/static/js/main.3cedf078.js",
     "static/js/498.6dd1e5e8.chunk.js": "/image2pdf/static/js/498.6dd1e5e8.chunk.js",
     "static/js/703.cc5b22e1.chunk.js": "/image2pdf/static/js/703.cc5b22e1.chunk.js",
     "static/js/636.6ef13084.chunk.js": "/image2pdf/static/js/636.6ef13084.chunk.js",
     "index.html": "/image2pdf/index.html",
     "main.f935df4d.css.map": "/image2pdf/static/css/main.f935df4d.css.map",
-    "main.1352f351.js.map": "/image2pdf/static/js/main.1352f351.js.map",
+    "main.3cedf078.js.map": "/image2pdf/static/js/main.3cedf078.js.map",
     "498.6dd1e5e8.chunk.js.map": "/image2pdf/static/js/498.6dd1e5e8.chunk.js.map",
     "703.cc5b22e1.chunk.js.map": "/image2pdf/static/js/703.cc5b22e1.chunk.js.map",
     "636.6ef13084.chunk.js.map": "/image2pdf/static/js/636.6ef13084.chunk.js.map"
   },
   "entrypoints": [
     "static/css/main.f935df4d.css",
-    "static/js/main.1352f351.js"
+    "static/js/main.3cedf078.js"
   ]
 }
