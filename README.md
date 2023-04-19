@@ -19,4 +19,4 @@ npm i jsPDF
 ```
 
 ## Site link
-Try it out here: https://anshuthopsee.github.io/image2pdf
+### https://anshuthopsee.github.io/image2pdf
