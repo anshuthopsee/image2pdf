@@ -1,4 +1,5 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState, useContext } from "react";
+import { GeneralContext } from "./App.js";
 import utils from "./utils.js";
 import Canvas from "./Canvas.js";
 import Popup from "./Popup.js";
@@ -6,7 +7,7 @@ import Info from "./Info.js";
 
 const Utils = new utils();
 
-const Home = ({ setFiles, files, popup, setPopup }) => {
+const Home = () => {
     let imagePos = {x: 0, y: 0};
     let mousePos = {x: 0, y: 0};
     let image = null;
@@ -22,12 +23,13 @@ const Home = ({ setFiles, files, popup, setPopup }) => {
     const selectedFiles = useRef();
     const clonedElement = useRef();
     const isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
+    const {files, setFiles, popup, setPopup} = useContext(GeneralContext);
     const [chosen, setChosen] = useState({element: null, offsetX: null, offsetY: null, left: null, top: null});
 
     const handleFile = (e) => {
         let filesArray = [...files];
 
-        [...e.target.files].map((file) => {
+        [...e.target.files].forEach((file) => {
             if (file.type === "image/jpeg" || file.type === "image/png") {
                 filesArray.push(file);
             };
@@ -187,14 +189,14 @@ const Home = ({ setFiles, files, popup, setPopup }) => {
                 let obj = {};
 
                 if (files.length > 0) {
-                    [...selectedFiles.current.children].map((file, index) => {
+                    [...selectedFiles.current.children].forEach((file, index) => {
                         obj[parseInt(file.id)] = filesArray[index];
                     });
 
                     filesArray = [];
                     let orderedKeys = Object.keys(obj).sort((a, b) => a - b);
 
-                    orderedKeys.map((key) => {
+                    orderedKeys.forEach((key) => {
                         filesArray.push(obj[parseInt(key)]);
                     });
                 
@@ -359,7 +361,7 @@ const Home = ({ setFiles, files, popup, setPopup }) => {
 
     return (
         <>
-            {popup.show ? <Popup show={popup.show} setPopup={setPopup} timeout={popup.timeout}>{popup.message}</Popup> : ""}
+            {popup.show ? <Popup/> : ""}
             {renderClone(chosen)}
             <div className="container">
                 <div className="box">
