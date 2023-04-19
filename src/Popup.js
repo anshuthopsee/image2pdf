@@ -1,21 +1,23 @@
-import { useEffect } from "react";
+import { useEffect, useContext } from "react";
+import { GeneralContext } from "./App";
 
-const Popup = (props) => {
+const Popup = () => {
+    const {popup, setPopup} = useContext(GeneralContext);
 
     useEffect(() => {
         let timer = setTimeout(() => {
-            props.setPopup(() => { return {show: false, message: "", timeout: 0}});
-        }, props.timeout*1000);
+            setPopup(() => { return {show: false, message: "", timeout: 0}});
+        }, popup.timeout*1000);
 
         return () => {
             clearTimeout(timer);
         };
 
-    }, [props.show, props.children]);
+    }, [popup.show, popup.message]);
 
     return (
         <div className="popup_container">
-            <div className="popup" style={{borderBottom: "5px solid #24d654"}}>{props.children}</div>
+            <div className="popup" style={{borderBottom: "5px solid #24d654"}}>{popup.message}</div>
         </div>
     );
 };
