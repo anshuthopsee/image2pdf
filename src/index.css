@@ -37,14 +37,24 @@ code {
 }
 
 a {
+  position: relative;
   margin: 0 40px;
   padding: 0;
-  color: white;
+  height: 30px;
+  width: 110px;
+  font-family: Arial, Helvetica, sans-serif;
+  background-color: white;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  text-decoration: none;
+  border-radius: 10px;
+  color: black;
   font-weight: bold;
 }
 
 a:hover {
-  color: #ededed;
+  color: #0324fc;
 }
 
 .header {
@@ -68,6 +78,7 @@ a:hover {
   width: 100%;
   max-width: 600px;
   -webkit-overflow-scrolling: touch;
+  /* border: 1px solid white; */
 }
 
 .box {
@@ -103,9 +114,8 @@ a:hover {
   user-select: none;
   position: relative;
   gap: 20px;
-  background-color: black;
   border-radius: 20px;
-  opacity: 50%;
+  background-color: rgba(0, 0, 0, 0.5);
   height: 220px;
   width: 570px;
   margin: 10px;
@@ -374,8 +384,14 @@ a:hover {
   margin-left: 10px;
   margin-right: 10px;
   margin-bottom: 10px;
+  font-size: 24px;
+  font-family: Arial, Helvetica, sans-serif;
   color: white;
   text-align: justify;
+}
+
+.small{
+  font-size: 18px;
 }
 
 @keyframes gradient {
@@ -424,6 +440,7 @@ a:hover {
 
   .header {
     margin: 15px;
+    font-size: 24px;
   }
 
   a {
