@@ -1,5 +1,7 @@
-import { useState } from "react";
+import { useState, createContext } from "react";
 import Home from "./Home.js";
+
+export const GeneralContext = createContext();
 
 function App() {
 
@@ -12,7 +14,9 @@ function App() {
         <span className='header'>image2pdf</span>
         <a href="https://github.com/anshuthopsee/image2pdf">Github repo</a>
       </div>
-      <Home setFiles={setFiles} files={files} popup={popup} setPopup={setPopup}/>
+      <GeneralContext.Provider value={{files, setFiles, popup, setPopup}}>
+        <Home/>
+      </GeneralContext.Provider>
     </div>
   );
 }
