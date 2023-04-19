@@ -4,7 +4,7 @@ A simple image to PDF converting website with a carousel that allows you to drag
 ![Usage demo](demo/image2pdf.gif)
 
 ## How to use
-- First, upload one or upto 20 images, by clicking on the blackish area, or by dragging and dropping your images onto it.
+- First, upload one or upto 20 images, by clicking on the dark area, or by dragging and dropping your images onto it.
 - Once uploaded, you'll see the images in the carousel, in the order you've uploaded them. Incase you want to change the order of the images, just click and hold the image, to move it around and change it's position.
 - Once, you have them in your desired order, you can click on the download button, to download the images as a PDF.
 
