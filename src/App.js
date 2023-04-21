@@ -12,7 +12,7 @@ function App() {
     <div className="App">
       <div className='navbar'>
         <span className='header'>image2pdf</span>
-        <a href="https://github.com/anshuthopsee/image2pdf">Github repo</a>
+        <a href="https://github.com/anshuthopsee/image2pdf">GitHub repo</a>
       </div>
       <GeneralContext.Provider value={{files, setFiles, popup, setPopup}}>
         <Home/>
