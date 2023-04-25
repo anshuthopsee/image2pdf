@@ -7,7 +7,7 @@ const GeneralContextProvider = ({ children }) => {
     const [popup, setPopup] = useState({show: false, message: "", timeout: 0});
 
     return (
-        <GeneralContext.Provider value={{files, setFiles, popup, setPopup, chosen, setChosen}}>
+        <GeneralContext.Provider value={{files, setFiles, popup, setPopup}}>
             {children}
         </GeneralContext.Provider>
     );
