@@ -1,5 +1,5 @@
-import GeneralContextProvider from "./GeneralContextProvider.js";
-import Home from "./components/Home.js";
+import GeneralContextProvider from "../GeneralContextProvider.js";
+import Home from "./Home.js";
 
 function App() {
 
