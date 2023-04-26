@@ -134,7 +134,7 @@ const Carousel = ({ files }) => {
         scrollingRight = false;
         chosenIndex.current = null;
 
-        if (chosen.element && e.target.tagName &&files.length > 0) {
+        if (chosen.element && e.target.tagName && files.length > 0) {
             if (e.target.tagName.toLowerCase() !== "input") {
                 let filesArray = [...files];
                 let obj = {};
