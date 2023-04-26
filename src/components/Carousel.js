@@ -5,9 +5,10 @@ import Canvas from "./Canvas.js";
 
 const Utils = new utils();
 
-const Carousel = ({ files }) => {
-    let imagePos = {x: 0, y: 0};
-    let mousePos = {x: 0, y: 0};
+const Carousel = () => {
+    const imagePos = {x: 0, y: 0};
+    const mousePos = {x: 0, y: 0};
+
     let image = null;
     let animate = false;
     let onLeftBtn = false;
@@ -21,11 +22,11 @@ const Carousel = ({ files }) => {
     const selectedFiles = useRef();
     const clonedElement = useRef();
     const isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
-    const { setFiles, setPopup } = useContext(GeneralContext);
+    const { files, setFiles, setPopup } = useContext(GeneralContext);
     const [chosen, setChosen] = useState({element: null, offsetX: null, offsetY: null, left: null, top: null});
 
     const onMouseDown = (e, index) => {
-        if (e.target.tagName.toLowerCase() !== "button") {
+        if (e.target.tagName !== "BUTTON") {
             let chosenImage = e.target.getBoundingClientRect();
             let left = e.touches ? chosenImage.left : e.clientX - e.nativeEvent.offsetX;
             let top = e.touches ? chosenImage.top + window.scrollY : e.clientY - e.nativeEvent.offsetY + window.scrollY;
@@ -41,7 +42,7 @@ const Carousel = ({ files }) => {
         };
     };
 
-    const updatePos = () => {
+    const moveClone = () => {
         if (!clonedElement.current) {
             animate = false;
             return;
@@ -56,7 +57,7 @@ const Carousel = ({ files }) => {
         };
 
         clonedElement.current.style.transform = `translate(${imagePos.x}px, ${imagePos.y}px)`;
-        let element = document.getElementById(`${chosenIndex.current}`);
+        let element = document.getElementById(chosenIndex.current);
 
         if (Number.isInteger(parseInt(image.id)) && parseInt(image.id) !== parseInt(element.id)) {
             let pos1 = 10;
@@ -67,11 +68,9 @@ const Carousel = ({ files }) => {
             element.id = image.id;
             chosenIndex.current = image.id;
             image.id = id;
-            
-            selectedFiles.current.style.scrollSnapType = "none";
         };
 
-        requestAnimationFrame(updatePos);
+        requestAnimationFrame(moveClone);
     };
 
     const onMouseMove = (e) => {
@@ -89,7 +88,7 @@ const Carousel = ({ files }) => {
                 mousePos.y = e.clientY;
             };
             
-            if (target && target.id === "left_btn") {
+            if (target?.id === "left_btn") {
                 if (!onLeftBtn) {
                     onLeftBtn = true;
                     onRightBtn = false;
@@ -97,7 +96,7 @@ const Carousel = ({ files }) => {
                     scrollingLeft = false;
                     scrollLeft(e, false);
                 };
-            } else if (target && target.id === "right_btn") {
+            } else if (target?.id === "right_btn") {
                 if (!onRightBtn) {
                     onLeftBtn = false;
                     onRightBtn = true;
@@ -121,7 +120,7 @@ const Carousel = ({ files }) => {
             imagePos.y = startY+offsetOnScroll;
 
             if (!animate) {
-                updatePos(e);
+                moveClone();
                 animate = true;
             };
         };
@@ -135,7 +134,7 @@ const Carousel = ({ files }) => {
         chosenIndex.current = null;
 
         if (chosen.element && e.target.tagName && files.length > 0) {
-            if (e.target.tagName.toLowerCase() !== "input") {
+            if (e.target.tagName !== "INPUT") {
                 let filesArray = [...files];
                 let obj = {};
 
@@ -158,6 +157,8 @@ const Carousel = ({ files }) => {
 
         setChosen({element: null, offsetX: null, offsetY: null, left: null, top: null});
     };
+
+    const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
 
     const scrollLeft = (e, onClick=true) => {
         if (Math.abs(selectedFiles.current.scrollLeft) !== 0) {
@@ -213,8 +214,6 @@ const Carousel = ({ files }) => {
             } else scrollFunc();
         };
     };
-
-    const sleep = ms => new Promise(resolve => setTimeout(resolve, ms));
 
     const scrollRight = (e, onClick=true) => {
         let containerWidth = selectedFiles.current.clientWidth;
@@ -330,7 +329,7 @@ const Carousel = ({ files }) => {
             {renderClone(chosen)}
             <div className="selected_files_container">
                 <button id="left_btn" onClick={scrollLeft}> {"<"} </button>
-                <div className="selected_files" ref={selectedFiles} style={{scrollSnapType: "none"}}>{renderImages(files)}</div>
+                <div className="selected_files" ref={selectedFiles}>{renderImages(files)}</div>
                 <button id="right_btn" onClick={scrollRight}>{">"}</button>
             </div>
         </>
