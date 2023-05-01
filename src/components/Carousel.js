@@ -1,4 +1,4 @@
-import { useState, useEffect, useContext, useRef } from "react";
+import { useState, useEffect, useContext, useRef, useCallback } from "react";
 import { GeneralContext } from "../GeneralContextProvider.js";
 import utils from "../utils.js";
 import Canvas from "./Canvas.js";
@@ -6,25 +6,56 @@ import Canvas from "./Canvas.js";
 const Utils = new utils();
 
 const Carousel = () => {
-    const imagePos = {x: 0, y: 0};
-    const mousePos = {x: 0, y: 0};
 
-    let image = null;
-    let animate = false;
-    let onLeftBtn = false;
-    let onRightBtn = false;
-    let scrollingLeft = false;
-    let scrollingRight = false;
+    // Cloned image position on screen
+    const imagePosRef = useRef({x: 0, y: 0});
 
-    const chosenIndex = useRef(null);
-    const firstImageVisible = useRef(0);
-    const numberOfImagesVisible = useRef(0);
-    const selectedFiles = useRef();
-    const clonedElement = useRef();
+    // Mouse/Touch position on screen
+    const mousePosRef = useRef({x: 0, y: 0});
+
+    // Reference to the image, cloned image is being dragged over
+    const imageUnderMouseRef = useRef(null);
+
+    // Is the cloned element being animated?
+    const animateRef = useRef(false);
+
+    // Is the mouse/touch on the left button?
+    const onLeftBtnRef = useRef(false);
+
+    // Is the mouse/touch on the right button?
+    const onRightBtnRef = useRef(false);
+
+    // Is the scrollLeft func in the midst of calling itself recursively?
+    const scrollingLeftRef = useRef(false);
+
+    // Is the scrollRight func in the midst of calling itself recursively?
+    const scrollingRightRef = useRef(false);
+
+    // Index of the image chosen
+    const chosenImageIndexRef = useRef(null);
+
+    // Index of the first image visible in the carousel at any time
+    const indexOfFirstRef = useRef(0);
+
+    // Number of images visible in the carousel at any time
+    const numberOfImagesVisibleRef = useRef(0);
+
+    // Reference to the element that holds all the images
+    const selectedFilesRef = useRef();
+
+    // Reference to the cloned image
+    const clonedElementRef = useRef();
+
+    // Is user on mobile?
     const isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
+
+    // Retrieving state variables and functions from the GeneralContext provider
     const { files, setFiles, setPopup } = useContext(GeneralContext);
+
+    // Stores information about the chosen image, it's 'left', 'top' properties and more
     const [chosen, setChosen] = useState({element: null, offsetX: null, offsetY: null, left: null, top: null});
 
+    // Handle mousedown and touchstart events
     const onMouseDown = (e, index) => {
         if (e.target.tagName !== "BUTTON") {
             let chosenImage = e.target.getBoundingClientRect();
@@ -34,7 +65,7 @@ const Carousel = () => {
             let offsetX = e.touches ? e.touches[0].pageX - e.touches[0].target.offsetLeft : chosenImage.left + e.nativeEvent.offsetX;
             let offsetY = e.touches ? e.touches[0].pageY - e.touches[0].target.offsetTop : chosenImage.top + e.nativeEvent.offsetY;
 
-            chosenIndex.current = index;
+            chosenImageIndexRef.current = index;
 
             setChosen(() => {
                 return {element: e.target, offsetX: offsetX, offsetY: offsetY, left: left, top: top};
@@ -42,169 +73,191 @@ const Carousel = () => {
         };
     };
 
+    // Move the cloned image along with the mouse/touch
     const moveClone = () => {
-        if (!clonedElement.current) {
-            animate = false;
+
+        // If cloned image dosen't exist stop animation
+        if (!clonedElementRef.current) {
+            animateRef.current = false;
             return;
         };
 
         if (isMobile) {
-            let swapWith = document.elementsFromPoint(mousePos.x, mousePos.y)[3]?.parentNode;
-            if (swapWith) image = swapWith;
+            let swapWith = document.elementsFromPoint(mousePosRef.current.x, mousePosRef.current.y)[3]?.parentNode;
+            if (swapWith) imageUnderMouseRef.current = swapWith;
         } else {
-            let swapWith = document.elementsFromPoint(mousePos.x, mousePos.y)[1]?.parentNode;
-            if (swapWith) image = swapWith;
+            let swapWith = document.elementsFromPoint(mousePosRef.current.x, mousePosRef.current.y)[1]?.parentNode;
+            if (swapWith) imageUnderMouseRef.current = swapWith;
         };
 
-        clonedElement.current.style.transform = `translate(${imagePos.x}px, ${imagePos.y}px)`;
-        let element = document.getElementById(chosenIndex.current);
+        clonedElementRef.current.style.transform = `translate(${imagePosRef.current.x}px, ${imagePosRef.current.y}px)`;
+        let element = document.getElementById(chosenImageIndexRef.current);
 
-        if (Number.isInteger(parseInt(image.id)) && parseInt(image.id) !== parseInt(element.id)) {
+        // Swap the position and id's of the cloned image and the image it was dragged over
+        if (Number.isInteger(parseInt(imageUnderMouseRef.current.id)) && parseInt(imageUnderMouseRef.current.id) !== parseInt(element.id)) {
             let pos1 = 10;
-            image.style.transform = `translateX(${pos1+=145*(parseInt(element.id))}px)`;
+            imageUnderMouseRef.current.style.transform = `translateX(${pos1+=145*(parseInt(element.id))}px)`;
             let pos2 = 10;
-            element.style.transform = `translateX(${pos2+=145*parseInt(image.id)}px)`;
+            element.style.transform = `translateX(${pos2+=145*parseInt(imageUnderMouseRef.current.id)}px)`;
             let id = element.id;
-            element.id = image.id;
-            chosenIndex.current = image.id;
-            image.id = id;
+            element.id = imageUnderMouseRef.current.id;
+            chosenImageIndexRef.current = imageUnderMouseRef.current.id;
+            imageUnderMouseRef.current.id = id;
         };
 
         requestAnimationFrame(moveClone);
     };
 
-    const onMouseMove = (e) => {
-        if (clonedElement.current) {
-            e.preventDefault();
-            let target = e.target;
+    // Handle mousemove and touchmove events
+    const onMouseMove = useCallback((e) => {
 
-            if (e.touches) {
-                target = document.elementFromPoint(e.touches[0].clientX, e.touches[0].clientY);
-                mousePos.x = e.touches[0].clientX;
-                mousePos.y = e.touches[0].clientY;
-                clonedElement.current.style.pointerEvents = "all";
-            } else {
-                mousePos.x = e.clientX;
-                mousePos.y = e.clientY;
-            };
-            
-            if (target?.id === "left_btn") {
-                if (!onLeftBtn) {
-                    onLeftBtn = true;
-                    onRightBtn = false;
-                    scrollingRight = false;
-                    scrollingLeft = false;
-                    scrollLeft(e, false);
+        // Update image, mouse position variables only if cloned element exists
+        const helper = () => {
+            if (clonedElementRef.current) {
+                e.preventDefault();
+                let target = e.target;
+    
+                if (e.touches) {
+                    target = document.elementFromPoint(e.touches[0].clientX, e.touches[0].clientY);
+                    mousePosRef.current.x = e.touches[0].clientX;
+                    mousePosRef.current.y = e.touches[0].clientY;
+                    clonedElementRef.current.style.pointerEvents = "all";
+                } else {
+                    mousePosRef.current.x = e.clientX;
+                    mousePosRef.current.y = e.clientY;
                 };
-            } else if (target?.id === "right_btn") {
-                if (!onRightBtn) {
-                    onLeftBtn = false;
-                    onRightBtn = true;
-                    scrollingRight = false;
-                    scrollingLeft = false;
-                    scrollRight(e, false);
-                }
-            } else {
-                onLeftBtn = false;
-                onRightBtn = false;
-                scrollingRight = false;
-                scrollingLeft = false;
-            };
-
-            let offsetOnScroll = e.touches ? window.scrollY : 0;
-            
-            e = e.touches ? e.touches[0] : e;
-            let startX = e.clientX-chosen.offsetX;
-            let startY = e.clientY-chosen.offsetY;
-            imagePos.x = startX;
-            imagePos.y = startY+offsetOnScroll;
-
-            if (!animate) {
-                moveClone();
-                animate = true;
-            };
-        };
-    };
-
-    const onMouseUp = (e) => {
-        onLeftBtn = false;
-        onRightBtn = false;
-        scrollingLeft = false;
-        scrollingRight = false;
-        chosenIndex.current = null;
-
-        if (chosen.element && e.target.tagName && files.length > 0) {
-            if (e.target.tagName !== "INPUT") {
-                let filesArray = [...files];
-                let obj = {};
-
-                if (files.length > 0) {
-                    [...selectedFiles.current.children].forEach((file, index) => {
-                        obj[parseInt(file.id)] = filesArray[index];
-                    });
-
-                    filesArray = [];
-                    let orderedKeys = Object.keys(obj).sort((a, b) => a - b);
-
-                    orderedKeys.forEach((key) => {
-                        filesArray.push(obj[parseInt(key)]);
-                    });
                 
-                    setFiles(() => [...filesArray]);
+                if (target?.id === "left_btn") {
+                    if (!onLeftBtnRef.current) {
+                        onLeftBtnRef.current = true;
+                        onRightBtnRef.current = false;
+                        scrollingRightRef.current = false;
+                        scrollingLeftRef.current = false;
+                        scrollLeft(e, false);
+                    };
+                } else if (target?.id === "right_btn") {
+                    if (!onRightBtnRef.current) {
+                        onLeftBtnRef.current = false;
+                        onRightBtnRef.current = true;
+                        scrollingRightRef.current = false;
+                        scrollingLeftRef.current = false;
+                        scrollRight(e, false);
+                    }
+                } else {
+                    onLeftBtnRef.current = false;
+                    onRightBtnRef.current = false;
+                    scrollingRightRef.current = false;
+                    scrollingLeftRef.current = false;
+                };
+    
+                let offsetOnScroll = e.touches ? window.scrollY : 0;
+                
+                e = e.touches ? e.touches[0] : e;
+                let startX = e.clientX-chosen.offsetX;
+                let startY = e.clientY-chosen.offsetY;
+                imagePosRef.current.x = startX;
+                imagePosRef.current.y = startY+offsetOnScroll;
+    
+                // If animation has been stopped, start it again
+                if (!animateRef.current) {
+                    moveClone();
+                    animateRef.current = true;
                 };
             };
         };
+        helper();
 
-        setChosen({element: null, offsetX: null, offsetY: null, left: null, top: null});
-    };
+    }, [chosen]);
 
+    // Handle mouseup and touchend events
+    const onMouseUp = useCallback((e) => {
+
+        const helper = () => {
+            onLeftBtnRef.current = false;
+            onRightBtnRef.current = false;
+            scrollingLeftRef.current = false;
+            scrollingRightRef.current = false;
+            chosenImageIndexRef.current = null;
+
+            if (chosen.element && e.target.tagName && files.length > 0) {
+                if (e.target.tagName !== "INPUT") {
+                    let filesArray = [...files];
+                    let obj = {};
+
+                    if (files.length > 0) {
+                        [...selectedFilesRef.current.children].forEach((file, index) => {
+                            obj[parseInt(file.id)] = filesArray[index];
+                        });
+
+                        filesArray = [];
+                        let orderedKeys = Object.keys(obj).sort((a, b) => a - b);
+
+                        orderedKeys.forEach((key) => {
+                            filesArray.push(obj[parseInt(key)]);
+                        });
+                    
+                        setFiles(() => [...filesArray]);
+                    };
+                };
+            };
+
+            setChosen({element: null, offsetX: null, offsetY: null, left: null, top: null});
+        };
+        helper();
+
+    }, [chosen]);
+
+    // Function to delay subsequent scroll for a certain amount of time
     const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
 
+    // Scroll carousel to the left
     const scrollLeft = (e, onClick=true) => {
-        if (Math.abs(selectedFiles.current.scrollLeft) !== 0) {
+        if (Math.abs(selectedFilesRef.current.scrollLeft) !== 0) {
             const scrollFunc = () => {
-                if (Math.abs(selectedFiles.current.scrollLeft) === 0) {
+                if (Math.abs(selectedFilesRef.current.scrollLeft) === 0) {
                     return;
                 };
 
-                let children = [...selectedFiles.current.children];
-                let numberOfImages = Utils.howManyImagesVisible(selectedFiles.current);
+                let children = [...selectedFilesRef.current.children];
+                let numberOfImages = Utils.howManyImagesVisible(selectedFilesRef.current);
 
-                if (numberOfImagesVisible.current !==0 && firstImageVisible.current+numberOfImagesVisible.current-1 === children.length-1) {
-                    if (numberOfImages > numberOfImagesVisible.current) {
-                        firstImageVisible.current-=numberOfImages-numberOfImagesVisible.current;
+                if (numberOfImagesVisibleRef.current !==0 && indexOfFirstRef.current+numberOfImagesVisibleRef.current-1 === children.length-1) {
+                    if (numberOfImages > numberOfImagesVisibleRef.current) {
+                        indexOfFirstRef.current-=numberOfImages-numberOfImagesVisibleRef.current;
                     };
                 };
 
-                numberOfImagesVisible.current = numberOfImages;
+                numberOfImagesVisibleRef.current = numberOfImages;
 
-                if (firstImageVisible.current-numberOfImages < 0) {
-                    if (firstImageVisible.current !==0) firstImageVisible.current = 0;
+                if (indexOfFirstRef.current-numberOfImages < 0) {
+                    if (indexOfFirstRef.current !==0) indexOfFirstRef.current = 0;
                     
                 } else {
-                    firstImageVisible.current-=numberOfImages;
+                    indexOfFirstRef.current-=numberOfImages;
                 };
 
                 let offset = 22;
-                let el = children.filter((child) => parseInt(child.id) === firstImageVisible.current)[0];
+                let el = children.filter((child) => parseInt(child.id) === indexOfFirstRef.current)[0];
                 let rect = el.getBoundingClientRect();
                 let left = rect.left - el.offsetParent.offsetParent.offsetLeft - offset;
-                selectedFiles.current.scrollLeft+=left;
+                selectedFilesRef.current.scrollLeft+=left;
             };
     
             if (!onClick) {
-                if (onLeftBtn) {
-                    scrollingLeft = true;
+                if (onLeftBtnRef.current) {
+                    scrollingLeftRef.current = true;
                     const func = async () => {
-                        if (!scrollingLeft || scrollingRight) {
+                        if (!scrollingLeftRef.current || scrollingRightRef.current) {
                             console.log("left-stop")
-                            scrollingLeft = false;
+                            scrollingLeftRef.current = false;
                             return;
                         };
                         
-                        scrollingLeft = true;
+                        scrollingLeftRef.current = true;
                         console.log("left-running")
                         scrollFunc();
+
+                        // Pause 1.5 seconds after each scroll while the mouse hovers over the button
                         await sleep(1500);
                         func()
                     };
@@ -215,44 +268,47 @@ const Carousel = () => {
         };
     };
 
+    // Scroll carousel to the right
     const scrollRight = (e, onClick=true) => {
-        let containerWidth = selectedFiles.current.clientWidth;
-        if (Math.abs(selectedFiles.current.scrollLeft) - (selectedFiles.current.scrollWidth - containerWidth) < -8) {
+        let containerWidth = selectedFilesRef.current.clientWidth;
+        if (Math.abs(selectedFilesRef.current.scrollLeft) - (selectedFilesRef.current.scrollWidth - containerWidth) < -8) {
             const scrollFunc = () => {
-                let numberOfImages = Utils.howManyImagesVisible(selectedFiles.current);
-                numberOfImagesVisible.current = numberOfImages;
-                let children = [...selectedFiles.current.children];
+                let numberOfImages = Utils.howManyImagesVisible(selectedFilesRef.current);
+                numberOfImagesVisibleRef.current = numberOfImages;
+                let children = [...selectedFilesRef.current.children];
 
-                if (Math.abs(selectedFiles.current.scrollLeft) - (selectedFiles.current.scrollWidth - containerWidth) >= -8) { 
+                if (Math.abs(selectedFilesRef.current.scrollLeft) - (selectedFilesRef.current.scrollWidth - containerWidth) >= -8) { 
                     return;
                 };
 
-                if (firstImageVisible.current+(2*numberOfImages) > children.length-1) {
-                    firstImageVisible.current=children.length-numberOfImages;
+                if (indexOfFirstRef.current+(2*numberOfImages) > children.length-1) {
+                    indexOfFirstRef.current=children.length-numberOfImages;
                 } else {
-                    firstImageVisible.current+=numberOfImages;
+                    indexOfFirstRef.current+=numberOfImages;
                 };
 
                 let offset = 22;
-                let el = children.filter((child) => parseInt(child.id) === firstImageVisible.current)[0];
+                let el = children.filter((child) => parseInt(child.id) === indexOfFirstRef.current)[0];
                 let rect = el.getBoundingClientRect();
                 let left = rect.left - el.offsetParent.offsetParent.offsetLeft - offset;
-                selectedFiles.current.scrollLeft+=left
+                selectedFilesRef.current.scrollLeft+=left
             };
     
             if (!onClick) {
-                if (onRightBtn) {
-                    scrollingRight = true;
+                if (onRightBtnRef.current) {
+                    scrollingRightRef.current = true;
                     const func = async () => {
-                        if (!scrollingRight || scrollingLeft) {
+                        if (!scrollingRightRef.current || scrollingLeftRef.current) {
                             console.log("right-stop")
-                            scrollingRight = false;
+                            scrollingRightRef.current = false;
                             return;
                         };
                         
-                        scrollingRight = true;
+                        scrollingRightRef.current = true;
                         console.log("right-running")
                         scrollFunc();
+
+                        // Pause 1.5 seconds after each scroll while the mouse hovers over the button
                         await sleep(1500);
                         func();
                     };
@@ -266,9 +322,9 @@ const Carousel = () => {
     const removeFile = (e, index) => {
         let filesArray = [...files];
         let fileName = Utils.shortenFileName(filesArray[index].name);
-        if (firstImageVisible.current > 0) {
+        if (indexOfFirstRef.current > 0) {
             if (index === filesArray.length-1) {
-                firstImageVisible.current-=1;
+                indexOfFirstRef.current-=1;
             };
         };
         filesArray.splice(index, 1);
@@ -296,16 +352,18 @@ const Carousel = () => {
                 );
             });
         } else {
-            firstImageVisible.current = 0;
-            numberOfImagesVisible.current = 0;
+            indexOfFirstRef.current = 0;
+            numberOfImagesVisibleRef.current = 0;
             return <p className="no_files">No images uploaded</p>
         };
     };
 
     const renderClone = ({ element, left, top }) => {
+
+        // Renders clone, if an element has been chosen
         if (element) {
             return (
-                <div className="pos-abs z6" ref={clonedElement} style={{left: `${left}px`, top: `${top}px`}}>
+                <div className="pos-abs z6" ref={clonedElementRef} style={{left: `${left}px`, top: `${top}px`}}>
                     <div className="image_box z6">
                         <span className="file_name z6">{element.children[0].textContent}</span>
                     </div>
@@ -315,6 +373,8 @@ const Carousel = () => {
     };
 
     useEffect(() => {
+
+        // Mouse/Touch event listeners
         document.addEventListener((isMobile ? "touchend" : "mouseup"), onMouseUp);
         document.addEventListener((isMobile ? "touchmove" : "mousemove"), onMouseMove, {passive: false});
 
@@ -322,14 +382,15 @@ const Carousel = () => {
             document.removeEventListener((isMobile ? "touchend" : "mouseup"), onMouseUp);
             document.removeEventListener((isMobile ? "touchmove" : "mousemove"), onMouseMove, {passive: false});
         };
-    }, [chosen])
+
+    }, [chosen, isMobile, onMouseUp, onMouseMove]);
 
     return (
         <>
             {renderClone(chosen)}
             <div className="selected_files_container">
                 <button id="left_btn" onClick={scrollLeft}> {"<"} </button>
-                <div className="selected_files" ref={selectedFiles}>{renderImages(files)}</div>
+                <div className="selected_files" ref={selectedFilesRef}>{renderImages(files)}</div>
                 <button id="right_btn" onClick={scrollRight}>{">"}</button>
             </div>
         </>
