@@ -12,6 +12,10 @@ A simple image to PDF converting website with a carousel that allows you to drag
 - JPEG
 - PNG
 
+## Features
+- Re-orderable image carousel.
+- Touch support.
+
 ## Dependencies
 - jsPDF
 ```
